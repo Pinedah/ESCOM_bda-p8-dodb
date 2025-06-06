@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mongodb:
     image: mongo:7.0
@@ -35,7 +33,7 @@ services:
       - "3000:3000"
     environment:
       NODE_ENV: production
-      MONGODB_URI: mongodb://admin:password123@mongodb:27017/inventory?authSource=admin
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/inventory_db?authSource=admin
     depends_on:
       - mongodb
     volumes:

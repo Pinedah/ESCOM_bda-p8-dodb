@@ -363,6 +363,85 @@
         .toast.error {
             background: #dc3545;
         }
+
+        /* New styles for product and inventory items */
+        .product-item, .inventory-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        
+        .item-actions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+        }
+        
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+            min-width: auto;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6c757d;
+            padding: 0;
+            min-width: auto;
+        }
+        
+        .confirm-dialog {
+            text-align: center;
+        }
+        
+        .confirm-dialog .buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -414,6 +493,9 @@
                         </button>
                         <button onclick="toggleCreateForm()" class="success">
                             <i class="fas fa-plus"></i> Nuevo Producto
+                        </button>
+                        <button onclick="refreshProducts()" class="secondary">
+                            <i class="fas fa-sync"></i> Actualizar
                         </button>
                     </div>
 
@@ -496,6 +578,9 @@
                         <button onclick="getLowStockItems()" class="danger">
                             <i class="fas fa-exclamation-triangle"></i> Stock Bajo
                         </button>
+                        <button onclick="refreshInventory()" class="secondary">
+                            <i class="fas fa-sync"></i> Actualizar
+                        </button>
                     </div>
 
                     <div class="collapsible">
@@ -520,6 +605,36 @@
                             </div>
                             <button onclick="addStock()" class="success">
                                 <i class="fas fa-plus"></i> Agregar Stock
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="collapsible">
+                        <div class="collapsible-header" onclick="toggleCollapsible(this.parentElement)">
+                            <span><i class="fas fa-minus-circle"></i> Remover Stock</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="collapsible-content">
+                            <div class="form-group">
+                                <label><i class="fas fa-id-card"></i> ID del Inventario:</label>
+                                <input type="text" id="removeInventoryId" placeholder="ID del inventario">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label><i class="fas fa-building"></i> Almacén:</label>
+                                    <input type="text" id="removeWarehouseName" placeholder="Main Warehouse">
+                                </div>
+                                <div class="form-group">
+                                    <label><i class="fas fa-cubes"></i> Cantidad:</label>
+                                    <input type="number" id="removeQuantity" placeholder="10">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-comment"></i> Razón:</label>
+                                <input type="text" id="removeReason" placeholder="Devolución, daño, etc.">
+                            </div>
+                            <button onclick="removeStock()" class="danger">
+                                <i class="fas fa-minus"></i> Remover Stock
                             </button>
                         </div>
                     </div>
@@ -577,6 +692,120 @@
                 </button>
 
                 <div id="customResult" class="result"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="editProductModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Editar Producto</h3>
+                <button class="modal-close" onclick="closeModal('editProductModal')">&times;</button>
+            </div>
+            <div id="editProductForm">
+                <input type="hidden" id="editProductId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-barcode"></i> SKU:</label>
+                        <input type="text" id="editProductSku">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-tag"></i> Nombre:</label>
+                        <input type="text" id="editProductName">
+                    </div>
+                </div>
+                
+                <div class="form-group form-full">
+                    <label><i class="fas fa-align-left"></i> Descripción:</label>
+                    <textarea id="editProductDescription" rows="3"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-folder"></i> Categoría Principal:</label>
+                        <select id="editProductMainCategory">
+                            <option value="Electronics">Electronics</option>
+                            <option value="Clothing">Clothing</option>
+                            <option value="Home">Home</option>
+                            <option value="Books">Books</option>
+                            <option value="Sports">Sports</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-folder-open"></i> Subcategoría:</label>
+                        <input type="text" id="editProductSubCategory">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-dollar-sign"></i> Precio de Costo:</label>
+                        <input type="number" id="editProductCost" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-money-bill"></i> Precio de Venta:</label>
+                        <input type="number" id="editProductRetail" step="0.01">
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button onclick="updateProduct()" class="success">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                    <button onclick="closeModal('editProductModal')" class="secondary">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="editInventoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Editar Inventario</h3>
+                <button class="modal-close" onclick="closeModal('editInventoryModal')">&times;</button>
+            </div>
+            <div id="editInventoryForm">
+                <input type="hidden" id="editInventoryId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-exclamation-triangle"></i> Punto de Reorden:</label>
+                        <input type="number" id="editReorderPoint" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-layer-group"></i> Stock Máximo:</label>
+                        <input type="number" id="editMaxStock" min="0">
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button onclick="updateInventory()" class="success">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                    <button onclick="closeModal('editInventoryModal')" class="secondary">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <div class="confirm-dialog">
+                <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #dc3545; margin-bottom: 20px;"></i>
+                <h3 id="confirmTitle">Confirmar Acción</h3>
+                <p id="confirmMessage">¿Estás seguro de que deseas realizar esta acción?</p>
+                <div class="buttons">
+                    <button id="confirmButton" class="danger">
+                        <i class="fas fa-check"></i> Confirmar
+                    </button>
+                    <button onclick="closeModal('confirmModal')" class="secondary">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -760,6 +989,26 @@
             }
         }
 
+        async function removeStock() {
+            const inventoryId = document.getElementById('removeInventoryId').value;
+            const body = {
+                warehouse_name: document.getElementById('removeWarehouseName').value,
+                quantity: parseInt(document.getElementById('removeQuantity').value),
+                reason: document.getElementById('removeReason').value || 'Manual adjustment'
+            };
+            
+            showLoading('inventoryResult');
+            const result = await makeRequest(`/inventory/${inventoryId}/remove-stock`, 'POST', body);
+            
+            if (result.data) {
+                showToast('Stock removido exitosamente');
+                refreshInventory();
+                loadDashboardStats();
+            } else {
+                displayResult('inventoryResult', result);
+            }
+        }
+
         // Aggregation Operations
         async function getInventoryValueByCategory() {
             showLoading('aggregationResult');
@@ -800,6 +1049,262 @@
             showLoading('customResult');
             const result = await makeRequest(endpoint, method, body);
             displayResult('customResult', result);
+        }
+
+        // Modal management
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        // Confirmation dialog
+        function showConfirmation(title, message, onConfirm) {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmButton').onclick = () => {
+                closeModal('confirmModal');
+                onConfirm();
+            };
+            showModal('confirmModal');
+        }
+
+        // Enhanced product display with actions
+        function displayProducts(products) {
+            if (!products || !products.data) return;
+            
+            let html = '<div style="max-height: 400px; overflow-y: auto;">';
+            
+            products.data.forEach(product => {
+                html += `
+                    <div class="product-item">
+                        <div class="item-actions">
+                            <button class="btn-sm success" onclick="editProduct('${product._id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-sm danger" onclick="confirmDeleteProduct('${product._id}', '${product.name}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        <h4>${product.name} (${product.sku})</h4>
+                        <p><strong>Categoría:</strong> ${product.category?.main}/${product.category?.sub}</p>
+                        <p><strong>Precio:</strong> $${product.pricing?.retail} (Costo: $${product.pricing?.cost})</p>
+                        <p><strong>Descripción:</strong> ${product.description || 'N/A'}</p>
+                        <small><strong>Estado:</strong> ${product.status || 'active'}</small>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            
+            if (products.pagination) {
+                html += `
+                    <div style="margin-top: 15px; text-align: center;">
+                        <small>Página ${products.pagination.current_page} de ${products.pagination.total_pages} 
+                        (${products.pagination.total_items} productos)</small>
+                    </div>
+                `;
+            }
+            
+            return html;
+        }
+
+        // Enhanced inventory display with actions
+        function displayInventory(inventory) {
+            if (!inventory || !inventory.data) return;
+            
+            let html = '<div style="max-height: 400px; overflow-y: auto;">';
+            
+            inventory.data.forEach(item => {
+                const productName = item.product?.name || item.product_id;
+                const lowStock = item.stock_alerts?.low_stock ? 'text-danger' : '';
+                const outOfStock = item.stock_alerts?.out_of_stock ? 'background: #ffebee;' : '';
+                
+                html += `
+                    <div class="inventory-item" style="${outOfStock}">
+                        <div class="item-actions">
+                            <button class="btn-sm success" onclick="editInventory('${item._id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-sm secondary" onclick="viewInventoryDetails('${item._id}')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <h4 class="${lowStock}">${productName} (${item.sku})</h4>
+                        <p><strong>Stock Total:</strong> ${item.total_stock} | <strong>Disponible:</strong> ${item.total_available}</p>
+                        <p><strong>Punto de Reorden:</strong> ${item.reorder_point} | <strong>Máximo:</strong> ${item.max_stock}</p>
+                        ${item.warehouses && item.warehouses.length > 0 ? `
+                            <div><strong>Almacenes:</strong>
+                                ${item.warehouses.map(w => `${w.warehouse_name}: ${w.quantity} (Disp: ${w.available})`).join(', ')}
+                            </div>
+                        ` : ''}
+                        ${item.stock_alerts?.low_stock ? '<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Stock Bajo</span>' : ''}
+                        ${item.stock_alerts?.out_of_stock ? '<span class="text-danger"><i class="fas fa-times-circle"></i> Sin Stock</span>' : ''}
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+
+        // Product CRUD operations
+        async function getAllProducts() {
+            showLoading('productsResult');
+            const result = await makeRequest('/products');
+            
+            if (result.data) {
+                document.getElementById('productsResult').className = 'result success';
+                document.getElementById('productsResult').innerHTML = displayProducts(result.data);
+            } else {
+                displayResult('productsResult', result);
+            }
+        }
+
+        async function refreshProducts() {
+            await getAllProducts();
+            showToast('Lista de productos actualizada');
+        }
+
+        async function editProduct(productId) {
+            try {
+                const result = await makeRequest(`/products/${productId}`);
+                if (result.data && result.data.data) {
+                    const product = result.data.data;
+                    
+                    document.getElementById('editProductId').value = product._id;
+                    document.getElementById('editProductSku').value = product.sku;
+                    document.getElementById('editProductName').value = product.name;
+                    document.getElementById('editProductDescription').value = product.description || '';
+                    document.getElementById('editProductMainCategory').value = product.category?.main || '';
+                    document.getElementById('editProductSubCategory').value = product.category?.sub || '';
+                    document.getElementById('editProductCost').value = product.pricing?.cost || 0;
+                    document.getElementById('editProductRetail').value = product.pricing?.retail || 0;
+                    
+                    showModal('editProductModal');
+                }
+            } catch (error) {
+                showToast('Error al cargar el producto', 'error');
+            }
+        }
+
+        async function updateProduct() {
+            const productId = document.getElementById('editProductId').value;
+            const product = {
+                sku: document.getElementById('editProductSku').value,
+                name: document.getElementById('editProductName').value,
+                description: document.getElementById('editProductDescription').value,
+                category: {
+                    main: document.getElementById('editProductMainCategory').value,
+                    sub: document.getElementById('editProductSubCategory').value
+                },
+                pricing: {
+                    cost: parseFloat(document.getElementById('editProductCost').value),
+                    retail: parseFloat(document.getElementById('editProductRetail').value)
+                }
+            };
+            
+            const result = await makeRequest(`/products/${productId}`, 'PUT', product);
+            
+            if (result.data) {
+                showToast('Producto actualizado exitosamente');
+                closeModal('editProductModal');
+                refreshProducts();
+            } else {
+                showToast(result.error || 'Error al actualizar producto', 'error');
+            }
+        }
+
+        function confirmDeleteProduct(productId, productName) {
+            showConfirmation(
+                'Eliminar Producto',
+                `¿Estás seguro de que deseas eliminar "${productName}"? Esta acción también eliminará su inventario asociado.`,
+                () => deleteProduct(productId)
+            );
+        }
+
+        async function deleteProduct(productId) {
+            const result = await makeRequest(`/products/${productId}`, 'DELETE');
+            
+            if (result.data) {
+                showToast('Producto eliminado exitosamente');
+                refreshProducts();
+                loadDashboardStats();
+            } else {
+                showToast(result.error || 'Error al eliminar producto', 'error');
+            }
+        }
+
+        // Inventory CRUD operations
+        async function getAllInventory() {
+            showLoading('inventoryResult');
+            const result = await makeRequest('/inventory');
+            
+            if (result.data) {
+                document.getElementById('inventoryResult').className = 'result success';
+                document.getElementById('inventoryResult').innerHTML = displayInventory(result.data);
+            } else {
+                displayResult('inventoryResult', result);
+            }
+        }
+
+        async function refreshInventory() {
+            await getAllInventory();
+            showToast('Lista de inventario actualizada');
+        }
+
+        async function editInventory(inventoryId) {
+            try {
+                const result = await makeRequest(`/inventory/${inventoryId}`);
+                if (result.data) {
+                    // Find inventory item in the list
+                    const allInventory = await makeRequest('/inventory');
+                    const inventory = allInventory.data.data.find(item => item._id === inventoryId);
+                    
+                    if (inventory) {
+                        document.getElementById('editInventoryId').value = inventory._id;
+                        document.getElementById('editReorderPoint').value = inventory.reorder_point || 10;
+                        document.getElementById('editMaxStock').value = inventory.max_stock || 1000;
+                        
+                        showModal('editInventoryModal');
+                    }
+                }
+            } catch (error) {
+                showToast('Error al cargar el inventario', 'error');
+            }
+        }
+
+        async function updateInventory() {
+            const inventoryId = document.getElementById('editInventoryId').value;
+            const updates = {
+                reorder_point: parseInt(document.getElementById('editReorderPoint').value),
+                max_stock: parseInt(document.getElementById('editMaxStock').value)
+            };
+            
+            const result = await makeRequest(`/inventory/${inventoryId}`, 'PUT', updates);
+            
+            if (result.data) {
+                showToast('Inventario actualizado exitosamente');
+                closeModal('editInventoryModal');
+                refreshInventory();
+            } else {
+                showToast(result.error || 'Error al actualizar inventario', 'error');
+            }
+        }
+
+        async function viewInventoryDetails(inventoryId) {
+            showLoading('inventoryResult');
+            const result = await makeRequest(`/inventory`);
+            
+            if (result.data) {
+                const inventory = result.data.data.find(item => item._id === inventoryId);
+                if (inventory) {
+                    document.getElementById('inventoryResult').className = 'result success';
+                    document.getElementById('inventoryResult').innerHTML = `<pre>${JSON.stringify(inventory, null, 2)}</pre>`;
+                }
+            }
         }
     </script>
 </body>
