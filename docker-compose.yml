@@ -14,6 +14,11 @@ services:
       - ./scripts/init-db.js:/docker-entrypoint-initdb.d/init-db.js:ro
     networks:
       - inventory-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   mongo-express:
     image: mongo-express:1.0.0
@@ -27,7 +32,8 @@ services:
       ME_CONFIG_MONGODB_URL: mongodb://admin:password123@mongodb:27017/
       ME_CONFIG_BASICAUTH: false
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     networks:
       - inventory-network
 
@@ -45,10 +51,26 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     networks:
       - inventory-network
     command: npm run dev
+
+  seeder:
+    build: .
+    container_name: inventory-seeder
+    environment:
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/inventory_db?authSource=admin
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - app
+    networks:
+      - inventory-network
+    command: npm run seed
+    restart: "no"
 
 volumes:
   mongodb_data:

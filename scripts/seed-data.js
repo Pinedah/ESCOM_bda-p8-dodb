@@ -1,4 +1,6 @@
 const mongoose = require('mongoose');
+const Product = require('../src/models/Product');
+const Inventory = require('../src/models/Inventory');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://admin:password123@mongodb:27017/inventory_db?authSource=admin';
 
@@ -9,8 +11,7 @@ const sampleProducts = [
     description: "Smartphone con pantalla AMOLED de 6.2 pulgadas",
     category: {
       main: "Electronics",
-      sub: "Mobile Phones",
-      path: "Electronics/Mobile Phones"
+      sub: "Mobile Phones"
     },
     specifications: {
       brand: "Samsung",
@@ -30,9 +31,7 @@ const sampleProducts = [
       currency: "USD"
     },
     tags: ["smartphone", "android", "samsung"],
-    status: "active",
-    created_at: new Date(),
-    updated_at: new Date()
+    status: "active"
   },
   {
     sku: "LAPTOP-001",
@@ -40,8 +39,7 @@ const sampleProducts = [
     description: "Laptop ultradelgada con chip M2",
     category: {
       main: "Electronics",
-      sub: "Laptops",
-      path: "Electronics/Laptops"
+      sub: "Laptops"
     },
     specifications: {
       brand: "Apple",
@@ -61,56 +59,35 @@ const sampleProducts = [
       currency: "USD"
     },
     tags: ["laptop", "apple", "macbook"],
-    status: "active",
-    created_at: new Date(),
-    updated_at: new Date()
-  }
-];
-
-const sampleInventory = [
-  {
-    sku: "PHONE-001",
-    warehouses: [
-      {
-        warehouse_name: "Main Warehouse",
-        location: "A1-B2-C3",
-        quantity: 150,
-        reserved: 25,
-        available: 125
-      }
-    ],
-    total_stock: 150,
-    total_available: 125,
-    reorder_point: 50,
-    max_stock: 500,
-    last_restock: new Date(),
-    stock_alerts: {
-      low_stock: false,
-      out_of_stock: false,
-      overstock: false
-    }
+    status: "active"
   },
   {
-    sku: "LAPTOP-001",
-    warehouses: [
-      {
-        warehouse_name: "Main Warehouse",
-        location: "B1-A2-D1",
-        quantity: 75,
-        reserved: 10,
-        available: 65
+    sku: "TABLET-001",
+    name: "iPad Pro 12.9",
+    description: "Tablet profesional con chip M2",
+    category: {
+      main: "Electronics",
+      sub: "Tablets"
+    },
+    specifications: {
+      brand: "Apple",
+      model: "iPad Pro",
+      color: "Space Gray",
+      storage: "128GB",
+      technical: {
+        screen: "12.9 inches Liquid Retina",
+        processor: "Apple M2",
+        camera: "12MP Pro camera system"
       }
-    ],
-    total_stock: 75,
-    total_available: 65,
-    reorder_point: 20,
-    max_stock: 200,
-    last_restock: new Date(),
-    stock_alerts: {
-      low_stock: false,
-      out_of_stock: false,
-      overstock: false
-    }
+    },
+    pricing: {
+      cost: 750.00,
+      retail: 1099.99,
+      wholesale: 850.00,
+      currency: "USD"
+    },
+    tags: ["tablet", "apple", "ipad"],
+    status: "active"
   }
 ];
 
@@ -119,30 +96,51 @@ async function seedDatabase() {
     await mongoose.connect(MONGODB_URI);
     console.log('Connected to MongoDB for seeding...');
 
-    const db = mongoose.connection.db;
-
     // Clear existing data
-    await db.collection('products').deleteMany({});
-    await db.collection('inventory').deleteMany({});
+    await Product.deleteMany({});
+    await Inventory.deleteMany({});
     console.log('Cleared existing data');
 
     // Insert products
-    const productResult = await db.collection('products').insertMany(sampleProducts);
-    console.log(`Inserted ${productResult.insertedCount} products`);
+    const products = await Product.insertMany(sampleProducts);
+    console.log(`Inserted ${products.length} products`);
 
-    // Update inventory with product ObjectIds
-    for (let i = 0; i < sampleInventory.length; i++) {
-      const product = await db.collection('products').findOne({ sku: sampleInventory[i].sku });
-      if (product) {
-        sampleInventory[i].product_id = product._id;
-      }
+    // Create inventory for each product
+    for (const product of products) {
+      const inventory = new Inventory({
+        product_id: product._id,
+        sku: product.sku,
+        warehouses: [
+          {
+            warehouse_name: "Main Warehouse",
+            location: `${product.category.main.substring(0,1)}${Math.floor(Math.random() * 9) + 1}-${String.fromCharCode(65 + Math.floor(Math.random() * 26))}${Math.floor(Math.random() * 9) + 1}-${String.fromCharCode(65 + Math.floor(Math.random() * 26))}${Math.floor(Math.random() * 9) + 1}`,
+            quantity: Math.floor(Math.random() * 200) + 50,
+            reserved: Math.floor(Math.random() * 30),
+            available: 0 // Will be calculated
+          }
+        ],
+        reorder_point: Math.floor(Math.random() * 50) + 10,
+        max_stock: Math.floor(Math.random() * 500) + 200
+      });
+
+      // Calculate available stock
+      inventory.warehouses[0].available = inventory.warehouses[0].quantity - inventory.warehouses[0].reserved;
+      inventory.total_stock = inventory.warehouses[0].quantity;
+      inventory.total_available = inventory.warehouses[0].available;
+      inventory.last_restock = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000); // Random date within last 30 days
+
+      await inventory.save();
     }
 
-    // Insert inventory
-    const inventoryResult = await db.collection('inventory').insertMany(sampleInventory);
-    console.log(`Inserted ${inventoryResult.insertedCount} inventory records`);
-
     console.log('Database seeded successfully!');
+    console.log('\nSample operations you can try:');
+    console.log('1. Visit http://localhost:3000 for the web interface');
+    console.log('2. GET /api/products - List all products');
+    console.log('3. GET /api/inventory - List all inventory');
+    console.log('4. GET /api/aggregations/inventory-value-by-category - Category analysis');
+    console.log('5. GET /api/aggregations/top-products-analysis - Top products');
+    console.log('6. GET /api/aggregations/warehouse-dashboard - Warehouse dashboard');
+    
     process.exit(0);
   } catch (error) {
     console.error('Error seeding database:', error);

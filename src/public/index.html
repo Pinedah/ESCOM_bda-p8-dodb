@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management System</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 30px; color: #333; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .section h3 { color: #555; margin-top: 0; }
+        button { background: #007bff; color: white; border: none; padding: 10px 15px; margin: 5px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .form-group { margin: 10px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .result { background: #f8f9fa; padding: 15px; border-radius: 4px; margin-top: 10px; max-height: 400px; overflow-y: auto; }
+        .error { background: #f8d7da; color: #721c24; }
+        .success { background: #d4edda; color: #155724; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏢 Sistema de Gestión de Inventario</h1>
+            <p>Interfaz de prueba para operaciones CRUD y Agregaciones</p>
+        </div>
+
+        <div class="grid">
+            <!-- Products CRUD -->
+            <div class="section">
+                <h3>📦 Gestión de Productos</h3>
+                
+                <div class="form-group">
+                    <button onclick="getAllProducts()">Ver Todos los Productos</button>
+                    <button onclick="showCreateProductForm()">Crear Producto</button>
+                </div>
+
+                <div id="createProductForm" style="display: none;">
+                    <h4>Crear Nuevo Producto</h4>
+                    <div class="form-group">
+                        <label>SKU:</label>
+                        <input type="text" id="productSku" placeholder="PROD-001">
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre:</label>
+                        <input type="text" id="productName" placeholder="Nombre del producto">
+                    </div>
+                    <div class="form-group">
+                        <label>Descripción:</label>
+                        <textarea id="productDescription" placeholder="Descripción del producto"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría Principal:</label>
+                        <select id="productMainCategory">
+                            <option value="Electronics">Electronics</option>
+                            <option value="Clothing">Clothing</option>
+                            <option value="Home">Home</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Subcategoría:</label>
+                        <input type="text" id="productSubCategory" placeholder="Mobile Phones">
+                    </div>
+                    <div class="form-group">
+                        <label>Precio de Costo:</label>
+                        <input type="number" id="productCost" placeholder="100.00" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Precio de Venta:</label>
+                        <input type="number" id="productRetail" placeholder="150.00" step="0.01">
+                    </div>
+                    <button onclick="createProduct()">Crear Producto</button>
+                </div>
+
+                <div class="form-group">
+                    <input type="text" id="searchProducts" placeholder="Buscar productos...">
+                    <button onclick="searchProducts()">Buscar</button>
+                </div>
+
+                <div id="productsResult" class="result"></div>
+            </div>
+
+            <!-- Inventory Management -->
+            <div class="section">
+                <h3>📊 Gestión de Inventario</h3>
+                
+                <div class="form-group">
+                    <button onclick="getAllInventory()">Ver Todo el Inventario</button>
+                    <button onclick="getLowStockItems()">Productos con Stock Bajo</button>
+                </div>
+
+                <div class="form-group">
+                    <h4>Agregar Stock</h4>
+                    <input type="text" id="inventoryId" placeholder="ID del inventario">
+                    <input type="text" id="warehouseName" placeholder="Nombre del almacén" value="Main Warehouse">
+                    <input type="number" id="addQuantity" placeholder="Cantidad a agregar">
+                    <button onclick="addStock()">Agregar Stock</button>
+                </div>
+
+                <div id="inventoryResult" class="result"></div>
+            </div>
+        </div>
+
+        <!-- Aggregations -->
+        <div class="section">
+            <h3>📈 Análisis y Agregaciones</h3>
+            
+            <div class="form-group">
+                <button onclick="getInventoryValueByCategory()">Valor de Inventario por Categoría</button>
+                <button onclick="getTopProductsAnalysis()">Análisis de Productos Top</button>
+                <button onclick="getWarehouseDashboard()">Dashboard de Almacenes</button>
+            </div>
+
+            <div id="aggregationResult" class="result"></div>
+        </div>
+
+        <!-- Raw Operations -->
+        <div class="section">
+            <h3>🔧 Operaciones Avanzadas</h3>
+            
+            <div class="form-group">
+                <label>Endpoint personalizado:</label>
+                <input type="text" id="customEndpoint" placeholder="/api/products">
+                <select id="httpMethod">
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                </select>
+                <button onclick="executeCustomOperation()">Ejecutar</button>
+            </div>
+
+            <div class="form-group">
+                <label>Body (JSON para POST/PUT):</label>
+                <textarea id="customBody" rows="4" placeholder='{"key": "value"}'></textarea>
+            </div>
+
+            <div id="customResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        async function makeRequest(endpoint, method = 'GET', body = null) {
+            try {
+                const options = {
+                    method,
+                    headers: { 'Content-Type': 'application/json' }
+                };
+                
+                if (body) options.body = JSON.stringify(body);
+                
+                const response = await fetch(API_BASE + endpoint, options);
+                const data = await response.json();
+                
+                return { data, status: response.status };
+            } catch (error) {
+                return { error: error.message, status: 500 };
+            }
+        }
+
+        function displayResult(elementId, result) {
+            const element = document.getElementById(elementId);
+            if (result.error) {
+                element.className = 'result error';
+                element.innerHTML = `<strong>Error:</strong> ${result.error}`;
+            } else {
+                element.className = 'result success';
+                element.innerHTML = `<pre>${JSON.stringify(result.data, null, 2)}</pre>`;
+            }
+        }
+
+        // Product Operations
+        function showCreateProductForm() {
+            const form = document.getElementById('createProductForm');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function createProduct() {
+            const product = {
+                sku: document.getElementById('productSku').value,
+                name: document.getElementById('productName').value,
+                description: document.getElementById('productDescription').value,
+                category: {
+                    main: document.getElementById('productMainCategory').value,
+                    sub: document.getElementById('productSubCategory').value
+                },
+                pricing: {
+                    cost: parseFloat(document.getElementById('productCost').value),
+                    retail: parseFloat(document.getElementById('productRetail').value)
+                }
+            };
+            
+            const result = await makeRequest('/products', 'POST', product);
+            displayResult('productsResult', result);
+            if (!result.error) showCreateProductForm();
+        }
+
+        async function getAllProducts() {
+            const result = await makeRequest('/products');
+            displayResult('productsResult', result);
+        }
+
+        async function searchProducts() {
+            const search = document.getElementById('searchProducts').value;
+            const result = await makeRequest(`/products?search=${encodeURIComponent(search)}`);
+            displayResult('productsResult', result);
+        }
+
+        // Inventory Operations
+        async function getAllInventory() {
+            const result = await makeRequest('/inventory');
+            displayResult('inventoryResult', result);
+        }
+
+        async function getLowStockItems() {
+            const result = await makeRequest('/inventory?low_stock=true');
+            displayResult('inventoryResult', result);
+        }
+
+        async function addStock() {
+            const inventoryId = document.getElementById('inventoryId').value;
+            const body = {
+                warehouse_name: document.getElementById('warehouseName').value,
+                quantity: parseInt(document.getElementById('addQuantity').value)
+            };
+            
+            const result = await makeRequest(`/inventory/${inventoryId}/add-stock`, 'POST', body);
+            displayResult('inventoryResult', result);
+        }
+
+        // Aggregation Operations
+        async function getInventoryValueByCategory() {
+            const result = await makeRequest('/aggregations/inventory-value-by-category');
+            displayResult('aggregationResult', result);
+        }
+
+        async function getTopProductsAnalysis() {
+            const result = await makeRequest('/aggregations/top-products-analysis?limit=5');
+            displayResult('aggregationResult', result);
+        }
+
+        async function getWarehouseDashboard() {
+            const result = await makeRequest('/aggregations/warehouse-dashboard');
+            displayResult('aggregationResult', result);
+        }
+
+        // Custom Operations
+        async function executeCustomOperation() {
+            const endpoint = document.getElementById('customEndpoint').value;
+            const method = document.getElementById('httpMethod').value;
+            let body = null;
+            
+            if (method !== 'GET' && method !== 'DELETE') {
+                const bodyText = document.getElementById('customBody').value.trim();
+                if (bodyText) {
+                    try {
+                        body = JSON.parse(bodyText);
+                    } catch (e) {
+                        displayResult('customResult', { error: 'Invalid JSON in body' });
+                        return;
+                    }
+                }
+            }
+            
+            const result = await makeRequest(endpoint, method, body);
+            displayResult('customResult', result);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            getAllProducts();
+        });
+    </script>
+</body>
+</html>

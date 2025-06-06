@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -14,6 +15,7 @@ app.use(cors());
 app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Database connection
 const connectDB = async () => {
@@ -26,8 +28,17 @@ const connectDB = async () => {
   }
 };
 
+// Import routes
+const productsRouter = require('./routes/products');
+const inventoryRouter = require('./routes/inventory');
+const aggregationsRouter = require('./routes/aggregations');
+
 // Routes
 app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/api', (req, res) => {
   res.json({
     message: 'Sistema de Gestión de Inventario - API',
     status: 'active',
@@ -35,8 +46,8 @@ app.get('/', (req, res) => {
     endpoints: {
       products: '/api/products',
       inventory: '/api/inventory',
-      suppliers: '/api/suppliers',
-      reports: '/api/reports'
+      aggregations: '/api/aggregations',
+      health: '/api/health'
     }
   });
 });
@@ -49,23 +60,10 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Basic products endpoint for testing
-app.get('/api/products', async (req, res) => {
-  try {
-    const db = mongoose.connection.db;
-    const products = await db.collection('products').find({}).limit(10).toArray();
-    res.json({
-      success: true,
-      count: products.length,
-      data: products
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
+// API Routes
+app.use('/api/products', productsRouter);
+app.use('/api/inventory', inventoryRouter);
+app.use('/api/aggregations', aggregationsRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -89,8 +87,61 @@ const startServer = async () => {
   await connectDB();
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
+    console.log(`Web Interface: http://localhost:${PORT}`);
     console.log(`API Health: http://localhost:${PORT}/api/health`);
   });
 };
 
 startServer();
+
+const Product = require('./models/Product');
+
+// Conectar a MongoDB
+mongoose.connect('mongodb://localhost:27017/escom_bda', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+});
+
+// Verificar conexión
+mongoose.connection.on('connected', () => {
+  console.log('Conectado a MongoDB');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('Error de conexión:', err);
+});
+
+// Ejemplo de uso
+async function createProduct() {
+  try {
+    const product = new Product({
+      sku: 'IPHONE15PRO',
+      name: 'iPhone 15 Pro',
+      description: 'Latest iPhone model',
+      category: {
+        main: 'Electronics',
+        sub: 'Smartphones'
+      },
+      specifications: {
+        brand: 'Apple',
+        model: '15 Pro',
+        color: 'Natural Titanium',
+        storage: '128GB'
+      },
+      pricing: {
+        cost: 800,
+        retail: 999,
+        wholesale: 850
+      },
+      tags: ['smartphone', 'apple', 'premium']
+    });
+
+    const savedProduct = await product.save();
+    console.log('Producto creado:', savedProduct);
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+// Ejecutar ejemplo
+createProduct();
