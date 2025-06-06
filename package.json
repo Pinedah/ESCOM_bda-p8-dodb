@@ -1,0 +1,33 @@
+{
+  "name": "inventory-management-dodb",
+  "version": "1.0.0",
+  "description": "Document-oriented database inventory management system using MongoDB",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "seed": "node scripts/seed-data.js",
+    "init-db": "node scripts/init-db.js",
+    "test": "jest"
+  },
+  "keywords": ["mongodb", "inventory", "document-database", "nodejs", "express"],
+  "author": "BDA Student",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.0.3",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "joi": "^17.11.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
